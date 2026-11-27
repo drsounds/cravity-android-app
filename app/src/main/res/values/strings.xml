@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Cravity</string>
+    <string name="widget_name">Hunger clock</string>
+    <string name="widget_description">Analog hunger clock with green, orange and red zones</string>
+</resources>
