@@ -101,5 +101,41 @@ Requirements: JDK 17+, Android SDK with platform 35.
 Stack: Kotlin, Jetpack Compose (Material 3), Room, Glance app widget, WorkManager (refreshes the
 widget every 15 minutes), kotlinx.serialization. Min SDK 26.
 
+## CI and releases
+
+The workflows follow the same setup as the Roaming app:
+
+- `android-ci.yml`: on pushes to `main` and `claude/**` and on pull requests, runs the unit tests,
+  builds the debug APK and uploads it (`cravity-debug-apk`) with the test reports.
+- `android-build.yml`: run by hand (or called by the release workflow) to build a signed release
+  AAB (`release-aab` artifact).
+- `android-play-release.yml`: run by hand to build and publish to a Google Play track.
+
+`versionCode` comes from `GITHUB_RUN_NUMBER`, so every CI-built AAB has a new code.
+
+**Signing model**: Google Play manages the app signing key
+([Play App Signing](https://support.google.com/googleplay/android-developer/answer/9842756)). CI only
+needs an **upload key**, which signs the bundle you hand to Google. Treat it as a long-lived credential.
+
+Repository secrets used by the release workflows:
+
+| Secret | Description |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | The upload keystore file, base64-encoded (`base64 -w0 cravity-upload.jks`). |
+| `ANDROID_KEYSTORE_PASSWORD` | Store password for the keystore. |
+| `ANDROID_KEY_ALIAS` | Alias of the upload key inside the keystore (`cravity-upload`). |
+| `ANDROID_KEY_PASSWORD` | Password for the key (same as the store password for a PKCS12 keystore). |
+| `PLAY_SERVICE_ACCOUNT_JSON` | JSON key of a Google Play service account with release access to `se.cravity.app`. Only needed for `android-play-release.yml`. |
+
+For local release builds, put `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and
+`RELEASE_KEY_PASSWORD` in `local.properties` (not committed). Keystores (`*.jks`, `*.keystore`) are
+git-ignored.
+
+**Before the first Play release**: the Play Developer API cannot create an app's very first release.
+Run `android-build.yml`, download the `release-aab` artifact, and upload it by hand in Play Console
+(Release → Internal testing → Create release). Later releases can go through `android-play-release.yml`.
+
+## Code layout
+
 The clock is drawn once in `ui/ClockRenderer.kt` with `android.graphics`, and reused by the app
 (Compose canvas) and the widget (bitmap).
